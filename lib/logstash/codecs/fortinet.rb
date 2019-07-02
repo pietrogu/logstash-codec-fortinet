@@ -1,14 +1,9 @@
 # encoding: utf-8
-require "logstash/util/buftok"
 require "logstash/util/charset"
 require "logstash/codecs/base"
 
-# produce an event with the payload as the 'message' field and a '_parsefailure' tag.
 class LogStash::Codecs::Fortinet < LogStash::Codecs::Base
   config_name "fortinet"
-
-  # Indicate the delimiter your input puts each CEF event.
-  config :delimiter, :validate => :string
 
   # Cache of a gsub pattern that matches a backslash-escaped backslash or backslash-escaped equals, _capturing_ the escaped character
   EXTENSION_VALUE_ESCAPE_CAPTURE = /\\([\\=])/
@@ -23,37 +18,13 @@ class LogStash::Codecs::Fortinet < LogStash::Codecs::Base
   public
   def initialize(params={})
     super(params)
-
     # Input deve essere codificato in UTF-8
     @utf8_charset = LogStash::Util::Charset.new('UTF-8')
     @utf8_charset.logger = self.logger
-
-    # Se @delimiter è indicato tra i parametri... 
-    if @delimiter
-      @delimiter = @delimiter.gsub("\\r", "\r").gsub("\\n", "\n")
-      # ... @delimiter viene usato come elemento per la separazione delle linee		
-      @buffer = FileWatch::BufferedTokenizer.new(@delimiter)
-      # Nota: BufferedTokenizers permette di usare @delimeter in String#split per separare i dati in input
-      end
   end
    
   # In questa sezione effettuiamo il parsing
-  public
   def decode(data, &block)
-  # Se è indicato @delimeter allora si sta passando un blocco di log, quindi vanno separati  
-    if @delimiter
-      @buffer.extract(data).each do |line|
-	# Passiamo le diverse linee di log al parser        
-	handle(line, &block)
-      end
-    else
-      # Se è un solo log, lo passiamo direttamente al parser
-      handle(data, &block)
-    end
-  end
-
-  # Definiamo il parser vero e proprio
-  def handle(data, &block)
     # Creiamo l'evento
     event = LogStash::Event.new
 
